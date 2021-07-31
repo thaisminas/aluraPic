@@ -1,3 +1,6 @@
+import { NestResponseBiulder } from './../core/http/nest-responsebiulder';
+import { NestResponse } from './../core/http/nest.response';
+import { HttpStatus, NotFoundException } from '@nestjs/common';
 /* eslint-disable prettier/prettier */
 import { Usuario } from './usuario.entity';
 import { Body, Controller, Post, Get, Param } from '@nestjs/common';
@@ -10,15 +13,27 @@ export class UsuarioController {
   constructor(private usuarioService: UsuarioService) {}
 
   @Get(':nomeDeUsuario')
-  public buscaPorNomeUsuario(@Param('nomeDeUsuario') nomeDeUsuario: string){
-    const usuarioEncontrado = this.usuarioService.buscaPorNomeUsuario(nomeDeUsuario);
-    return usuarioEncontrado;
+  public buscaPorNomeDeUsuario(@Param('nomeDeUsuario') nomeDeUsuario: string): Usuario {
+      const usuarioEncontrado = this.usuarioService.buscaPorNomeDeUsuario(nomeDeUsuario);
+
+      if (!usuarioEncontrado) {
+          throw new NotFoundException({
+              statusCode: HttpStatus.NOT_FOUND,
+              message: 'Usuário não encontrado.'
+          });
+      }
+      return usuarioEncontrado;
   }
 
   @Post()
-  public cria(@Body() usuario: Usuario): Usuario {
-    //estou atribuindo a variavel usuarioCriado chamando o método cria da minha classe e retornand ela
+  public cria(@Body() usuario: Usuario, NestResponse) {
     const usuarioCriado = this.usuarioService.cria(usuario);
-    return usuarioCriado;
+    return new NestResponseBiulder()
+      .comStatus(HttpStatus.CREATED)
+      .comHeaders({
+        'Location': `/users/${usuarioCriado.nomeDeUsuario}`
+      })
+      .comBody(usuarioCriado)
+      .build();
   }
 }
